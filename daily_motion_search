@@ -1,0 +1,57 @@
+from requests_html import HTMLSession
+from json import loads
+from yt_dlp import YoutubeDL
+
+class dailymotion_search:
+
+	def search(self, search_terms):
+		session = HTMLSession()
+		url = f"https://www.dailymotion.com/search/{search_terms}/videos"
+		headers = {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36'}
+		try:
+			resp = session.get(url, timeout=10, headers=headers)
+		except:
+			return "connection error"
+		resp.html.render()
+		temp = list()
+		index2 = 0
+		string = resp.html.html
+		while True:
+			try:
+				index1 = string.index('<a href="/video/', index2)+9
+			except ValueError:
+				break
+			index2 = string.index('>', index1)-1
+			substring = string[index1:index2]
+			if substring not in temp:
+				temp.append(substring)
+		index1 = resp.html.text.index("Filters") +8
+		index2 = resp.html.text.index("Filters",index1)-1
+		x = 0
+		y = 0
+		result = {}
+		item = {}
+		for line in resp.html.text[index1:index2].splitlines():
+			if x == 0:
+				item["play_time"] = line
+			elif x == 1:
+				line += " "
+				if line in result:
+					line += "I"
+				item["title"] = line
+			elif x == 2:
+				item["channel"] = line
+			elif x == 3:
+				item ["date"] = line
+			x += 1
+			if x == 4:
+				result[item["title"]] = {
+				"url" : "https://www.dailymotion.com" + temp[y],
+				"play_time": item["play_time"],
+				"title": item["title"],
+				"channel": item["channel"],
+				"date": item["date"],
+				}
+				x = 0
+				y += 1
+		return result
